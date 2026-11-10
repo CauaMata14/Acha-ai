@@ -12,9 +12,12 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Builds nativos
-ios/
-android/
+# Builds nativos (gerados pelo Expo)
+/ios
+/android
+.kotlin/
+*.orig.*
+*.pem
 *.jks
 *.p8
 *.p12
