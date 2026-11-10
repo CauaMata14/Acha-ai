@@ -10,15 +10,18 @@ import {
   View,
 } from 'react-native';
 
+import { Alerta } from '@/components/Alerta';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
 import { mensagemDeErro } from '@/services/auth';
 import { validarEmail, validarSenha } from '@/utils/validacao';
 
 export default function Login() {
   const { entrar } = useAuth();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [tentouEnviar, setTentouEnviar] = useState(false);
@@ -40,6 +43,7 @@ export default function Login() {
     setCarregando(true);
     try {
       await entrar(email, senha);
+      toast.sucesso('Bem-vindo(a) de volta!');
       router.replace('/');
     } catch (erro) {
       setErroGeral(mensagemDeErro(erro));
@@ -60,9 +64,7 @@ export default function Login() {
         </View>
 
         {erroGeral && (
-          <View style={styles.alertaErro} accessibilityRole="alert">
-            <Text style={styles.alertaErroTexto}>{erroGeral}</Text>
-          </View>
+          <Alerta tipo="erro" mensagem={erroGeral} onFechar={() => setErroGeral(null)} />
         )}
 
         <Input
@@ -133,17 +135,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     color: cores.textoSuave,
-  },
-  alertaErro: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: cores.erroFundo,
-  },
-  alertaErroTexto: {
-    color: cores.erro,
-    fontSize: 14,
-    textAlign: 'center',
   },
   acoes: {
     marginTop: 8,

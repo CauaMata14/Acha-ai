@@ -1,21 +1,29 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { Loading } from '@/components/Loading';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
 
 // Tela temporária: confirma o login e permite sair.
 // Será substituída pelas abas Feed/Publicar/Perfil (#6).
 export default function Home() {
   const { usuario, carregando, sair } = useAuth();
+  const toast = useToast();
+
+  async function handleSair() {
+    try {
+      await sair();
+      toast.info('Você saiu da sua conta.');
+    } catch {
+      toast.erro('Não foi possível sair. Tente novamente.');
+    }
+  }
 
   if (carregando) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={cores.primaria} />
-      </View>
-    );
+    return <Loading mensagem="Verificando sua sessão..." />;
   }
 
   if (!usuario) {
@@ -27,7 +35,7 @@ export default function Home() {
       <Text style={styles.title}>AchaAí</Text>
       <Text style={styles.subtitle}>Olá, {usuario.displayName || usuario.email}!</Text>
       <View style={styles.acoes}>
-        <Button titulo="Sair" variante="secundario" onPress={sair} />
+        <Button titulo="Sair" variante="secundario" icone="log-out-outline" onPress={handleSair} />
       </View>
     </View>
   );

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { Alerta } from '@/components/Alerta';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { cores } from '@/constants/cores';
@@ -88,15 +89,9 @@ export default function Cadastro() {
         </Text>
 
         {erroGeral && (
-          <View style={styles.alertaErro} accessibilityRole="alert">
-            <Text style={styles.alertaErroTexto}>{erroGeral}</Text>
-          </View>
+          <Alerta tipo="erro" mensagem={erroGeral} onFechar={() => setErroGeral(null)} />
         )}
-        {sucesso && (
-          <View style={styles.alertaSucesso} accessibilityRole="alert">
-            <Text style={styles.alertaSucessoTexto}>Conta criada com sucesso! Entrando...</Text>
-          </View>
-        )}
+        {sucesso && <Alerta tipo="sucesso" mensagem="Conta criada com sucesso! Entrando..." />}
 
         <Input
           label="Nome"
@@ -187,29 +182,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontSize: 15,
     color: cores.textoSuave,
-  },
-  alertaErro: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: cores.erroFundo,
-  },
-  alertaErroTexto: {
-    color: cores.erro,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  alertaSucesso: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: cores.sucessoFundo,
-  },
-  alertaSucessoTexto: {
-    color: cores.sucesso,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   acoes: {
     marginTop: 8,
