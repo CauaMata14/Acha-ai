@@ -1,13 +1,26 @@
 export const cores = {
   primaria: '#2563EB',
   primariaEscura: '#1D4ED8',
+  primariaFundo: '#EFF6FF',
   texto: '#111827',
   textoSuave: '#6B7280',
   borda: '#D1D5DB',
+  bordaSuave: '#E5E7EB',
   fundo: '#FFFFFF',
   fundoCampo: '#F9FAFB',
+  fundoTela: '#F3F4F6',
   erro: '#DC2626',
+  erroEscuro: '#B91C1C',
   erroFundo: '#FEF2F2',
   sucesso: '#16A34A',
   sucessoFundo: '#F0FDF4',
+  aviso: '#D97706',
+  avisoFundo: '#FFFBEB',
+  sombra: '#000000',
+
+  // Cores dos tipos de publicação
+  achado: '#16A34A',
+  achadoFundo: '#DCFCE7',
+  perdido: '#EA580C',
+  perdidoFundo: '#FFEDD5',
 };
