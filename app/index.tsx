@@ -1,21 +1,16 @@
 import { Redirect } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { cores } from '@/constants/cores';
-import { sair } from '@/services/auth';
-import { auth } from '@/services/firebase';
+import { useAuth } from '@/hooks/useAuth';
 
 // Tela temporária: confirma o login e permite sair.
-// Será substituída pelo AuthContext (#5) e pelas abas Feed/Publicar/Perfil (#6).
+// Será substituída pelas abas Feed/Publicar/Perfil (#6).
 export default function Home() {
-  const [usuario, setUsuario] = useState<User | null | undefined>(undefined);
+  const { usuario, carregando, sair } = useAuth();
 
-  useEffect(() => onAuthStateChanged(auth, setUsuario), []);
-
-  if (usuario === undefined) {
+  if (carregando) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={cores.primaria} />

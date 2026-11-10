@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { cores } from '@/constants/cores';
-import { cadastrar, mensagemDeErro } from '@/services/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { mensagemDeErro } from '@/services/auth';
 import {
   SENHA_MINIMA,
   validarConfirmacao,
@@ -25,6 +26,7 @@ import {
 const ESPERA_APOS_SUCESSO_MS = 1200;
 
 export default function Cadastro() {
+  const { cadastrar } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
