@@ -4,6 +4,9 @@ O **AchaAí** é um aplicativo mobile desenvolvido em **React Native (Expo)** qu
 
 > Projeto final da disciplina de **Programação para Dispositivos Móveis – IESB**.
 
+- 📋 **Quadro de tarefas:** [GitHub Projects](https://github.com/users/CauaMata14/projects/4)
+- 🎬 **Vídeo de demonstração:** _(link será adicionado após a gravação)_
+
 ## 🎯 Problema e público-alvo
 
 No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) raramente voltam ao dono, porque não existe um canal centralizado entre quem perdeu e quem encontrou. O AchaAí resolve isso reunindo todas as publicações em um único lugar, acessível pelo celular.
@@ -42,7 +45,7 @@ No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) rar
 | Estado global | Context API |
 | Backend / Banco NoSQL | Firebase Firestore |
 | Autenticação | Firebase Auth |
-| Recursos nativos | expo-image-picker (câmera/galeria), expo-location (GPS), DateTimePicker |
+| Recursos nativos | expo-image-picker (câmera/galeria), expo-location (GPS) |
 | Ícones | @expo/vector-icons |
 
 ## 📂 Estrutura de pastas
@@ -65,9 +68,9 @@ Acha-ai/
 
 ### Pré-requisitos
 
-- [Node.js](https://nodejs.org/) 18 ou superior
+- [Node.js](https://nodejs.org/) 22.13 ou superior (exigido pelo Expo SDK 58)
 - [Git](https://git-scm.com/)
-- App **Expo Go** no celular (Android / iOS) ou um emulador Android/iOS
+- App **Expo Go** compatível com o **SDK 58** no celular (Android / iOS), ou um emulador Android/iOS
 
 ### 1. Clonar o repositório
 
@@ -85,8 +88,20 @@ npm install
 ### 3. Configurar o Firebase
 
 1. Acesse o [Console do Firebase](https://console.firebase.google.com/) e crie um projeto de teste.
-2. Em **Build → Firestore Database**, crie o banco em modo de teste.
-3. Em **Build → Authentication**, ative o provedor **E-mail/senha**.
+2. Em **Build → Authentication**, ative o provedor **E-mail/senha**.
+3. Em **Build → Firestore Database**, crie o banco e, na aba **Regras**, publique as regras abaixo (só usuários logados leem e gravam):
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
 4. Em **Configurações do projeto → Seus apps**, adicione um app **Web** e copie as credenciais.
 5. Na raiz do projeto, copie o arquivo de exemplo e preencha com suas chaves:
 
@@ -108,8 +123,10 @@ EXPO_PUBLIC_FIREBASE_APP_ID=seu_app_id
 ### 4. Iniciar o app
 
 ```bash
-npx expo start
+npx expo start -c
 ```
+
+> O `-c` limpa o cache do Metro. Use-o sempre que alterar o `.env`, senão as variáveis novas não são carregadas.
 
 - Escaneie o QR Code com o **Expo Go** (Android) ou com a câmera (iOS), ou
 - Pressione `a` para abrir no emulador Android / `i` para o simulador iOS.
@@ -130,8 +147,10 @@ npx expo start
 
 **Padrão de commits:** `feat:` nova funcionalidade · `fix:` correção · `style:` ajustes visuais · `docs:` documentação · `chore:` configuração
 
-## 👥 Integrantes
+## 👥 Integrantes e divisão de tarefas
 
-- Cauã Mata
-- Gustavo Domingos
-- Marcus Vinicius
+| Integrante | GitHub | Responsabilidades (issues) |
+|------------|--------|----------------------------|
+| Cauã Mata | [@CauaMata14](https://github.com/CauaMata14) | #1 Setup do projeto · #2 Firebase · #3 Git Flow · #4 Login e cadastro · #5 AuthContext · #18 README |
+| Gustavo Domingos | [@Gustavo0320IESB](https://github.com/Gustavo0320IESB) | _a definir_ |
+| Marcus Vinicius | [@MarcusBrzerra](https://github.com/MarcusBrzerra) | _a definir_ |
