@@ -13,10 +13,12 @@ import {
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { cores } from '@/constants/cores';
-import { entrar, mensagemDeErro } from '@/services/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { mensagemDeErro } from '@/services/auth';
 import { validarEmail, validarSenha } from '@/utils/validacao';
 
 export default function Login() {
+  const { entrar } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [tentouEnviar, setTentouEnviar] = useState(false);
