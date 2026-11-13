@@ -26,15 +26,13 @@ No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) rar
 
 ## 🖼️ Telas
 
-> Adicionar as capturas de tela ou GIFs na pasta `docs/screenshots` e atualizar os caminhos abaixo.
-
 | Login | Feed | Publicar item |
 |:-----:|:----:|:-------------:|
-| ![Login](docs/screenshots/login.png) | ![Feed](docs/screenshots/feed.png) | ![Publicar](docs/screenshots/publicar.png) |
+| ![Login](docs/imagens-modelo/1-login.png) | ![Feed](docs/imagens-modelo/2-feed.png) | ![Publicar](docs/imagens-modelo/3-publicar.png) |
 
 | Detalhes | Perfil |
 |:--------:|:------:|
-| ![Detalhes](docs/screenshots/detalhes.png) | ![Perfil](docs/screenshots/perfil.png) |
+| ![Detalhes](docs/imagens-modelo/4-detalhes.png) | ![Perfil](docs/imagens-modelo/5-perfil.png) |
 
 ## 🛠️ Tecnologias
 
@@ -61,7 +59,7 @@ Acha-ai/
 ├── services/           # Configuração e funções do Firebase
 ├── hooks/              # Hooks personalizados
 ├── assets/             # Imagens e ícones
-└── docs/screenshots/   # Capturas de tela do README
+└── docs/imagens-modelo/ # Protótipos das telas
 ```
 
 ## 🚀 Como executar localmente
