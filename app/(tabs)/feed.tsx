@@ -1,25 +1,22 @@
-import { Redirect, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
 import { EstadoErro } from '@/components/EstadoErro';
 import { EstadoVazio } from '@/components/EstadoVazio';
 import { ItemCard } from '@/components/ItemCard';
 import { Loading } from '@/components/Loading';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/useToast';
 import { mensagemErroFirestore, ouvirUltimosItens } from '@/services/itens';
 import { Item } from '@/types/item';
 
-// Tela temporária: mostra as últimas publicações para testar o ItemCard e a tela de detalhes.
-// Será substituída pelas abas Feed/Publicar/Perfil (#6) e pelo Feed em tempo real (#12).
-// O botão "Publicar item" abre o formulário (#8) até a aba Publicar existir.
-export default function Home() {
-  const { usuario, carregando, sair } = useAuth();
-  const toast = useToast();
+// Aba Feed: lista as últimas publicações em tempo real.
+// Busca e filtros por categoria/tipo entram na #13.
+// O layout das abas já garante que existe um usuário logado.
+export default function Feed() {
+  const { usuario } = useAuth();
 
   const [itens, setItens] = useState<Item[]>([]);
   const [carregandoItens, setCarregandoItens] = useState(true);
@@ -43,23 +40,6 @@ export default function Home() {
     );
     return cancelar;
   }, [usuario, tentativa]);
-
-  async function handleSair() {
-    try {
-      await sair();
-      toast.info('Você saiu da sua conta.');
-    } catch {
-      toast.erro('Não foi possível sair. Tente novamente.');
-    }
-  }
-
-  if (carregando) {
-    return <Loading mensagem="Verificando sua sessão..." />;
-  }
-
-  if (!usuario) {
-    return <Redirect href="/login" />;
-  }
 
   function renderConteudo() {
     if (carregandoItens) return <Loading mensagem="Carregando publicações..." telaCheia={false} />;
@@ -90,20 +70,10 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.cabecalho}>
-        <View style={styles.flex}>
-          <Text style={styles.title}>AchaAí</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            Olá, {usuario.displayName || usuario.email}!
-          </Text>
-        </View>
-        <Button titulo="Sair" variante="texto" icone="log-out-outline" onPress={handleSair} />
-      </View>
-      <View style={styles.barraPublicar}>
-        <Button
-          titulo="Publicar item"
-          icone="add-circle-outline"
-          onPress={() => router.push('/publicar')}
-        />
+        <Text style={styles.title}>AchaAí</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>
+          Olá, {usuario?.displayName || usuario?.email}!
+        </Text>
       </View>
       <View style={styles.flex}>{renderConteudo()}</View>
     </SafeAreaView>
@@ -120,7 +90,8 @@ const styles = StyleSheet.create({
   },
   cabecalho: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -134,12 +105,9 @@ const styles = StyleSheet.create({
     color: cores.primaria,
   },
   subtitle: {
+    flexShrink: 1,
     fontSize: 14,
     color: cores.textoSuave,
-  },
-  barraPublicar: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
   },
   lista: {
     padding: 16,

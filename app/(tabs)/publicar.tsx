@@ -30,7 +30,7 @@ import {
   validarItem,
 } from '@/utils/validacao';
 
-// Tela de publicação de item (#8). Quando as abas existirem (#6), vira a aba "Publicar".
+// Aba "Publicar" (#8). Formulário de publicação de item.
 // Foto (câmera/galeria) e localização por GPS entram nas próximas issues.
 export default function Publicar() {
   const { usuario } = useAuth();
@@ -105,7 +105,8 @@ export default function Publicar() {
       );
       toast.sucesso('Item publicado com sucesso!');
       limparFormulario();
-      router.replace({ pathname: '/item/[id]', params: { id } });
+      // push (e não replace): o "voltar" dos detalhes retorna para as abas
+      router.push({ pathname: '/item/[id]', params: { id } });
     } catch (erro) {
       setErroGeral(mensagemErroAoSalvar(erro));
       scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -222,7 +223,10 @@ export default function Publicar() {
           <Button
             titulo="Cancelar"
             variante="secundario"
-            onPress={() => router.back()}
+            onPress={() => {
+              limparFormulario();
+              router.navigate('/feed');
+            }}
             desabilitado={enviando}
           />
         </View>
