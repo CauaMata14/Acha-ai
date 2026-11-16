@@ -1,5 +1,6 @@
 import { FirebaseError } from 'firebase/app';
 import {
+  addDoc,
   collection,
   doc,
   DocumentData,
@@ -9,12 +10,13 @@ import {
   orderBy,
   query,
   QueryDocumentSnapshot,
+  serverTimestamp,
   Timestamp,
   Unsubscribe,
 } from 'firebase/firestore';
 
 import { db } from './firebase';
-import { Categoria, Item } from '@/types/item';
+import { AutorItem, Categoria, Item, LocalItem, TipoItem } from '@/types/item';
 
 export const COLECAO_ITENS = 'itens';
 
@@ -90,6 +92,41 @@ export function ouvirUltimosItens(
   return onSnapshot(consulta, (snap) => aoMudar(snap.docs.map(converterItem)), aoErro);
 }
 
+export type NovoItem = {
+  tipo: TipoItem;
+  titulo: string;
+  descricao: string;
+  categoria: Categoria;
+  local: LocalItem;
+  dataOcorrencia: Date;
+  fotoUrl?: string | null;
+};
+
+/** Grava uma nova publicação na coleção `itens` e devolve o id do documento criado. */
+export async function publicarItem(dados: NovoItem, autor: AutorItem): Promise<string> {
+  const referencia = await addDoc(collection(db, COLECAO_ITENS), {
+    tipo: dados.tipo,
+    titulo: dados.titulo.trim(),
+    descricao: dados.descricao.trim(),
+    categoria: dados.categoria,
+    local: {
+      descricao: dados.local.descricao.trim(),
+      latitude: dados.local.latitude ?? null,
+      longitude: dados.local.longitude ?? null,
+    },
+    fotoUrl: dados.fotoUrl ?? null,
+    dataOcorrencia: Timestamp.fromDate(dados.dataOcorrencia),
+    criadoEm: serverTimestamp(),
+    status: 'aberto',
+    autor: {
+      uid: autor.uid,
+      nome: autor.nome,
+      email: autor.email ?? null,
+    },
+  });
+  return referencia.id;
+}
+
 const MENSAGENS: Record<string, string> = {
   'permission-denied': 'Você não tem permissão para ver este conteúdo. Faça login novamente.',
   unavailable: 'Sem conexão com o servidor. Verifique sua internet.',
@@ -104,4 +141,13 @@ export function mensagemErroFirestore(erro: unknown): string {
     return MENSAGENS[erro.code];
   }
   return 'Não foi possível carregar as informações. Tente novamente.';
+}
+
+/** Mensagem de erro ao gravar (publicar, editar) em português. */
+export function mensagemErroAoSalvar(erro: unknown): string {
+  if (erro instanceof FirebaseError) {
+    if (erro.code === 'permission-denied') return 'Você não tem permissão para publicar. Faça login novamente.';
+    if (MENSAGENS[erro.code]) return MENSAGENS[erro.code];
+  }
+  return 'Não foi possível publicar o item. Tente novamente.';
 }

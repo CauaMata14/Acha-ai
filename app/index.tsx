@@ -16,6 +16,7 @@ import { Item } from '@/types/item';
 
 // Tela temporária: mostra as últimas publicações para testar o ItemCard e a tela de detalhes.
 // Será substituída pelas abas Feed/Publicar/Perfil (#6) e pelo Feed em tempo real (#12).
+// O botão "Publicar item" abre o formulário (#8) até a aba Publicar existir.
 export default function Home() {
   const { usuario, carregando, sair } = useAuth();
   const toast = useToast();
@@ -97,6 +98,13 @@ export default function Home() {
         </View>
         <Button titulo="Sair" variante="texto" icone="log-out-outline" onPress={handleSair} />
       </View>
+      <View style={styles.barraPublicar}>
+        <Button
+          titulo="Publicar item"
+          icone="add-circle-outline"
+          onPress={() => router.push('/publicar')}
+        />
+      </View>
       <View style={styles.flex}>{renderConteudo()}</View>
     </SafeAreaView>
   );
@@ -128,6 +136,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: cores.textoSuave,
+  },
+  barraPublicar: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   lista: {
     padding: 16,

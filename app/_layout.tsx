@@ -24,6 +24,17 @@ export default function RootLayout() {
                 headerShadowVisible: false,
               }}
             />
+            <Stack.Screen
+              name="publicar"
+              options={{
+                headerShown: true,
+                title: 'Publicar item',
+                headerBackTitle: 'Voltar',
+                headerTintColor: cores.primaria,
+                headerTitleStyle: { color: cores.texto },
+                headerShadowVisible: false,
+              }}
+            />
           </Stack>
         </ToastProvider>
       </AuthProvider>
