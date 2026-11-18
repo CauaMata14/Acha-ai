@@ -88,6 +88,17 @@ export function validarDataOcorrencia(data: Date | null, agora: Date = new Date(
   return null;
 }
 
+/** WhatsApp opcional: vazio é aceito; se preenchido, DDD + número (10 ou 11 dígitos). */
+export function validarTelefone(telefone: string): string | null {
+  const digitos = telefone.replace(/\D/g, '');
+  if (!digitos) return null;
+  if (digitos.length < 10 || digitos.length > 11) {
+    return 'Digite o número com DDD, ex.: (61) 99999-0000. Ou deixe em branco.';
+  }
+  if (digitos.startsWith('0')) return 'Digite o DDD sem o zero, ex.: (61) 99999-0000.';
+  return null;
+}
+
 export type DadosFormularioItem = {
   tipo: string | null;
   titulo: string;
@@ -95,6 +106,7 @@ export type DadosFormularioItem = {
   descricao: string;
   local: string;
   dataOcorrencia: Date | null;
+  telefone?: string;
 };
 
 export type ErrosFormularioItem = Partial<Record<keyof DadosFormularioItem, string>>;
@@ -115,5 +127,7 @@ export function validarItem(dados: DadosFormularioItem): ErrosFormularioItem {
   if (descricao) erros.descricao = descricao;
   if (local) erros.local = local;
   if (dataOcorrencia) erros.dataOcorrencia = dataOcorrencia;
+  const telefone = validarTelefone(dados.telefone ?? '');
+  if (telefone) erros.telefone = telefone;
   return erros;
 }

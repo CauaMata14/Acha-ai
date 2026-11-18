@@ -28,6 +28,21 @@ export function formatarDataRelativa(data: Date, agora: Date = new Date()): stri
   return formatarData(data);
 }
 
+/**
+ * Máscara de telefone enquanto o usuário digita: "61999990000" → "(61) 99999-0000".
+ * Aceita texto parcial ("619" → "(61) 9") e ignora o que não for número.
+ */
+export function formatarTelefone(texto: string): string {
+  const d = texto.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  const ddd = d.slice(0, 2);
+  const resto = d.slice(2);
+  // Celular tem 9 dígitos depois do DDD; fixo tem 8
+  const corte = d.length === 11 ? 5 : 4;
+  if (resto.length <= corte) return `(${ddd}) ${resto}`;
+  return `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
+}
+
 /** "Gustavo Domingos" → "GD" (usado no avatar do autor). */
 export function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/).filter(Boolean);

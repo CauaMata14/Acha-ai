@@ -41,6 +41,8 @@ export type AutorItem = {
   uid: string;
   nome: string;
   email?: string | null;
+  /** WhatsApp para contato (opcional), só dígitos com DDD, sem o 55. Ex.: "61999990000". */
+  telefone?: string | null;
 };
 
 export type Item = {
