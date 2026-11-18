@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { mensagemErroAoSalvar, novoIdItem, publicarItem } from '@/services/itens';
 import { Categoria, TipoItem } from '@/types/item';
+import { formatarTelefone } from '@/utils/formatacao';
 import {
   DESCRICAO_MAXIMA,
   DIAS_MAXIMOS_OCORRENCIA,
@@ -31,6 +33,9 @@ import {
   TITULO_MAXIMO,
   validarItem,
 } from '@/utils/validacao';
+
+/** Onde o app guarda, só neste aparelho, o último WhatsApp informado (#15). */
+const CHAVE_TELEFONE = 'achaai:telefoneContato';
 
 // Aba "Publicar" (#8). Formulário de publicação de item.
 // Foto pela câmera/galeria (#9). Local por texto, ponto do campus ou GPS (#10).
@@ -46,6 +51,7 @@ export default function Publicar() {
   const [coordenadas, setCoordenadas] = useState<Coordenadas | null>(null);
   const [dataOcorrencia, setDataOcorrencia] = useState<Date | null>(() => new Date());
   const [foto, setFoto] = useState<string | null>(null);
+  const [telefone, setTelefone] = useState('');
   const [tentouEnviar, setTentouEnviar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -66,7 +72,24 @@ export default function Publicar() {
   }, [hoje]);
 
   // Os erros só aparecem depois da primeira tentativa de publicar e somem conforme o usuário corrige
-  const todosErros = validarItem({ tipo, titulo, categoria, descricao, local, dataOcorrencia });
+  // Preenche o WhatsApp com o último número usado neste aparelho
+  useEffect(() => {
+    AsyncStorage.getItem(CHAVE_TELEFONE)
+      .then((salvo) => {
+        if (salvo) setTelefone((atual) => atual || formatarTelefone(salvo));
+      })
+      .catch(() => {});
+  }, []);
+
+  const todosErros = validarItem({
+    tipo,
+    titulo,
+    categoria,
+    descricao,
+    local,
+    dataOcorrencia,
+    telefone,
+  });
   const erros = tentouEnviar ? todosErros : {};
   const quantidadeErros = Object.keys(erros).length;
 
@@ -100,6 +123,7 @@ export default function Publicar() {
 
     setEnviando(true);
     idPublicacao.current ??= novoIdItem();
+    const digitosTelefone = telefone.replace(/\D/g, '');
     try {
       const id = await publicarItem(
         idPublicacao.current,
@@ -120,8 +144,14 @@ export default function Publicar() {
           uid: usuario.uid,
           nome: usuario.displayName || usuario.email || 'Usuário',
           email: usuario.email,
+          telefone: digitosTelefone || null,
         }
       );
+      // Lembra o número para a próxima publicação (ou esquece, se o campo ficou vazio)
+      (digitosTelefone
+        ? AsyncStorage.setItem(CHAVE_TELEFONE, digitosTelefone)
+        : AsyncStorage.removeItem(CHAVE_TELEFONE)
+      ).catch(() => {});
       toast.sucesso('Item publicado com sucesso!');
       limparFormulario();
       // push (e não replace): o "voltar" dos detalhes retorna para as abas
@@ -233,6 +263,20 @@ export default function Publicar() {
           dataMinima={dataMinima}
           dataMaxima={hoje}
           desabilitado={enviando}
+        />
+
+        <Input
+          label="WhatsApp para contato (opcional)"
+          placeholder="(61) 99999-0000"
+          value={telefone}
+          onChangeText={(texto) => setTelefone(formatarTelefone(texto))}
+          erro={erros.telefone}
+          dica="Aparece para quem estiver logado no AchaAí. Sem ele, o contato é só pelo seu e-mail."
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          maxLength={15}
+          editable={!enviando}
         />
 
         <Text style={styles.legenda}>

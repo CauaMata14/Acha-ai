@@ -59,6 +59,7 @@ export function converterItem(
       uid: autor.uid ?? '',
       nome: autor.nome ?? 'Usuário',
       email: autor.email ?? null,
+      telefone: typeof autor.telefone === 'string' && autor.telefone ? autor.telefone : null,
     },
   };
 }
@@ -179,6 +180,7 @@ export async function publicarItem(
       uid: autor.uid,
       nome: autor.nome,
       email: autor.email ?? null,
+      telefone: autor.telefone || null,
     },
   });
   await comTempoLimite(gravacao, TEMPO_LIMITE_PUBLICAR_MS);

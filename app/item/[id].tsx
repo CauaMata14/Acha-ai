@@ -24,6 +24,7 @@ import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
 import { useConfirmadoApos } from '@/hooks/useConfirmadoApos';
 import { useToast } from '@/hooks/useToast';
+import { abrirContato, CanalContato, canaisDeContato } from '@/services/contato';
 import { mensagemErroFirestore, ouvirItem } from '@/services/itens';
 import { Item } from '@/types/item';
 import { formatarData, formatarDataHora, formatarDataRelativa, iniciais } from '@/utils/formatacao';
@@ -124,20 +125,15 @@ export default function DetalhesItem() {
     );
   }
 
-  function entrarEmContato() {
-    if (!item!.autor.email) {
-      toast.erro('O autor não informou um e-mail de contato.');
-      return;
+  async function contatar(canal: CanalContato) {
+    try {
+      await abrirContato(item!, canal);
+    } catch (erro) {
+      toast.erro(erro instanceof Error ? erro.message : 'Não foi possível abrir o contato.');
     }
-    const assunto = encodeURIComponent(`AchaAí: ${item!.titulo}`);
-    const corpo = encodeURIComponent(
-      `Olá, ${item!.autor.nome}! Vi sua publicação "${item!.titulo}" no AchaAí e gostaria de conversar sobre ele.`
-    );
-    abrirUrl(
-      `mailto:${item!.autor.email}?subject=${assunto}&body=${corpo}`,
-      'Não foi possível abrir o aplicativo de e-mail.'
-    );
   }
+
+  const canais = canaisDeContato(item);
 
   return (
     <View style={styles.tela}>
@@ -226,11 +222,38 @@ export default function DetalhesItem() {
             />
           ) : (
             !devolvido && (
-              <Button
-                titulo={achado ? 'É meu! Falar com quem achou' : 'Achei! Falar com o dono'}
-                icone="mail-outline"
-                onPress={entrarEmContato}
-              />
+              <Card style={styles.secao}>
+                <Text style={styles.tituloSecao}>
+                  {achado ? 'É seu? Fale com quem achou' : 'Achou? Fale com o dono'}
+                </Text>
+                {canais.length === 0 ? (
+                  <Text style={styles.semContato}>
+                    {item.autor.nome} não deixou um contato nesta publicação.
+                  </Text>
+                ) : (
+                  <View style={styles.botoesContato}>
+                    {canais.includes('whatsapp') && (
+                      <Button
+                        titulo="WhatsApp"
+                        icone="logo-whatsapp"
+                        onPress={() => contatar('whatsapp')}
+                      />
+                    )}
+                    {canais.includes('email') && (
+                      <Button
+                        titulo="E-mail"
+                        icone="mail-outline"
+                        variante={canais.includes('whatsapp') ? 'secundario' : 'primario'}
+                        onPress={() => contatar('email')}
+                      />
+                    )}
+                  </View>
+                )}
+                <Text style={styles.dicaContato}>
+                  Abrimos uma mensagem pronta citando esta publicação. Combine a entrega num lugar
+                  movimentado do campus.
+                </Text>
+              </Card>
             )
           )}
         </View>
@@ -393,6 +416,18 @@ const styles = StyleSheet.create({
   },
   botaoMapa: {
     alignSelf: 'flex-start',
+  },
+  botoesContato: {
+    gap: 10,
+  },
+  semContato: {
+    fontSize: 15,
+    color: cores.texto,
+  },
+  dicaContato: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: cores.textoSuave,
   },
   autor: {
     flexDirection: 'row',
