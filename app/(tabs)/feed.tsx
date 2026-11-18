@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BarraFiltros } from '@/components/BarraFiltros';
 import { EstadoErro } from '@/components/EstadoErro';
 import { EstadoVazio } from '@/components/EstadoVazio';
 import { ItemCard } from '@/components/ItemCard';
@@ -11,9 +12,15 @@ import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
 import { mensagemErroFirestore, ouvirUltimosItens } from '@/services/itens';
 import { Item } from '@/types/item';
+import { filtrarItens, FILTROS_VAZIOS, FiltrosFeed, temFiltroAtivo } from '@/utils/filtros';
 
-// Aba Feed: lista as últimas publicações em tempo real.
-// Busca e filtros por categoria/tipo entram na #13.
+/**
+ * Quantas publicações recentes o Feed escuta. A busca e os filtros (#13) são aplicados no app
+ * sobre essa lista: o Firestore não faz busca por texto e filtrar lá exigiria índices compostos.
+ */
+const LIMITE_FEED = 100;
+
+// Aba Feed: lista as últimas publicações em tempo real, com busca e filtros por tipo e categoria (#13).
 // O layout das abas já garante que existe um usuário logado.
 export default function Feed() {
   const { usuario } = useAuth();
@@ -22,13 +29,17 @@ export default function Feed() {
   const [carregandoItens, setCarregandoItens] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const [filtros, setFiltros] = useState<FiltrosFeed>(FILTROS_VAZIOS);
+
+  const itensFiltrados = useMemo(() => filtrarItens(itens, filtros), [itens, filtros]);
+  const filtrando = temFiltroAtivo(filtros);
 
   useEffect(() => {
     if (!usuario) return;
     setCarregandoItens(true);
     setErro(null);
     const cancelar = ouvirUltimosItens(
-      20,
+      LIMITE_FEED,
       (novosItens) => {
         setItens(novosItens);
         setCarregandoItens(false);
@@ -46,7 +57,7 @@ export default function Feed() {
     if (erro) return <EstadoErro mensagem={erro} onTentarNovamente={() => setTentativa((n) => n + 1)} />;
     return (
       <FlatList
-        data={itens}
+        data={itensFiltrados}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ItemCard
@@ -54,14 +65,47 @@ export default function Feed() {
             onPress={() => router.push({ pathname: '/item/[id]', params: { id: item.id } })}
           />
         )}
-        contentContainerStyle={[styles.lista, itens.length === 0 && styles.listaVazia]}
+        contentContainerStyle={[styles.lista, itensFiltrados.length === 0 && styles.listaVazia]}
         ItemSeparatorComponent={() => <View style={styles.separador} />}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListHeaderComponent={
+          filtrando && itensFiltrados.length > 0 ? (
+            <View style={styles.resumo}>
+              <Text style={styles.textoResumo} accessibilityLiveRegion="polite">
+                {itensFiltrados.length === 1
+                  ? '1 item encontrado'
+                  : `${itensFiltrados.length} itens encontrados`}
+              </Text>
+              <Pressable
+                onPress={() => setFiltros(FILTROS_VAZIOS)}
+                accessibilityRole="button"
+                hitSlop={8}
+              >
+                <Text style={styles.limpar}>Limpar filtros</Text>
+              </Pressable>
+            </View>
+          ) : undefined
+        }
         ListEmptyComponent={
-          <EstadoVazio
-            icone="file-tray-outline"
-            titulo="Nenhum item publicado ainda"
-            mensagem="Quando alguém publicar um objeto achado ou perdido, ele aparece aqui."
-          />
+          itens.length > 0 ? (
+            <EstadoVazio
+              icone="search-outline"
+              titulo="Nenhum item encontrado"
+              mensagem="Tente outras palavras ou mude o tipo e a categoria."
+              acao={{
+                titulo: 'Limpar filtros',
+                icone: 'close-circle-outline',
+                onPress: () => setFiltros(FILTROS_VAZIOS),
+              }}
+            />
+          ) : (
+            <EstadoVazio
+              icone="file-tray-outline"
+              titulo="Nenhum item publicado ainda"
+              mensagem="Quando alguém publicar um objeto achado ou perdido, ele aparece aqui."
+            />
+          )
         }
       />
     );
@@ -75,6 +119,7 @@ export default function Feed() {
           Olá, {usuario?.displayName || usuario?.email}!
         </Text>
       </View>
+      {!erro && <BarraFiltros filtros={filtros} onChange={setFiltros} />}
       <View style={styles.flex}>{renderConteudo()}</View>
     </SafeAreaView>
   );
@@ -117,5 +162,20 @@ const styles = StyleSheet.create({
   },
   separador: {
     height: 12,
+  },
+  resumo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  textoResumo: {
+    fontSize: 14,
+    color: cores.textoSuave,
+  },
+  limpar: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: cores.primaria,
   },
 });
