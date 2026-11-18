@@ -28,6 +28,17 @@ export default function RootLayout() {
                 headerShadowVisible: false,
               }}
             />
+            <Stack.Screen
+              name="editar/[id]"
+              options={{
+                headerShown: true,
+                title: 'Editar publicação',
+                headerBackTitle: 'Voltar',
+                headerTintColor: cores.primaria,
+                headerTitleStyle: { color: cores.texto },
+                headerShadowVisible: false,
+              }}
+            />
           </Stack>
         </ToastProvider>
       </AuthProvider>
