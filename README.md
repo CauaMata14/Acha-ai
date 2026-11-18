@@ -1,11 +1,11 @@
 # 📱 AchaAí – Achados e Perdidos do Campus
 
-O **AchaAí** é um aplicativo mobile desenvolvido em **React Native (Expo)** que conecta quem encontrou um objeto no campus a quem o perdeu. Quem acha tira uma foto, marca o local e publica; quem perdeu pesquisa por categoria ou local e entra em contato com quem encontrou para combinar a devolução.
+O **AchaAí** é um aplicativo mobile desenvolvido em **React Native (Expo)** que conecta quem encontrou um objeto no campus a quem o perdeu. Quem acha tira uma foto, marca o local e publica; quem perdeu pesquisa por categoria, tipo ou palavra-chave e fala com quem encontrou (WhatsApp ou e-mail) para combinar a devolução.
 
 > Projeto final da disciplina de **Programação para Dispositivos Móveis – IESB**.
 
 - 📋 **Quadro de tarefas:** [GitHub Projects](https://github.com/users/CauaMata14/projects/4)
-- 🎬 **Vídeo de demonstração:** _(link será adicionado após a gravação)_
+- 🎤 **Demonstração:** apresentação técnica em sala, com o app rodando no celular (Expo Go)
 
 ## 🎯 Problema e público-alvo
 
@@ -15,14 +15,16 @@ No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) rar
 
 ## ✨ Funcionalidades
 
-- 🔐 Cadastro e login de usuários (Firebase Auth)
-- 📸 Publicação de item achado ou perdido com foto (câmera ou galeria)
-- 📍 Registro do local do item (GPS ou ponto do campus)
-- 📰 Feed de itens em tempo real
-- 🔎 Busca e filtros por categoria, tipo e local
-- 📄 Tela de detalhes do item
-- 💬 Contato com quem publicou
-- 👤 Perfil com minhas publicações (editar, remover e marcar como devolvido)
+- 🔐 **Cadastro e login** com Firebase Auth, com a sessão salva no aparelho
+- 📸 **Publicar item achado ou perdido** com foto da câmera ou da galeria (comprimida antes de enviar)
+- 📍 **Local do item** por texto, por ponto do campus ou pelo GPS do celular
+- 📅 **Data da ocorrência** escolhida no calendário nativo (DateTimePicker)
+- 📰 **Feed em tempo real**: novas publicações aparecem sozinhas, com carregamento aos poucos e "puxar para atualizar"
+- 🔎 **Busca e filtros** por palavra-chave (título, descrição, local), tipo (achado/perdido) e categoria
+- 📄 **Detalhes do item** com foto ampliada em tela cheia, mapa do local e botão de compartilhar
+- 💬 **Contato com quem publicou** por WhatsApp ou e-mail, com mensagem pronta
+- 👤 **Perfil com minhas publicações**: editar, marcar como devolvido e remover
+- 🔔 **Feedback visual** em todas as telas: carregamento, mensagens de erro e sucesso, estados vazios e aviso de sem conexão
 
 ## 🖼️ Telas
 
@@ -30,36 +32,57 @@ No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) rar
 |:-----:|:----:|:-------------:|
 | ![Login](docs/imagens-modelo/1-login.png) | ![Feed](docs/imagens-modelo/2-feed.png) | ![Publicar](docs/imagens-modelo/3-publicar.png) |
 
-| Detalhes | Perfil |
-|:--------:|:------:|
-| ![Detalhes](docs/imagens-modelo/4-detalhes.png) | ![Perfil](docs/imagens-modelo/5-perfil.png) |
+| Detalhes | Perfil | Estados (carregando, vazio, erro) |
+|:--------:|:------:|:---------------------------------:|
+| ![Detalhes](docs/imagens-modelo/4-detalhes.png) | ![Perfil](docs/imagens-modelo/5-perfil.png) | ![Estados](docs/imagens-modelo/6-estados.png) |
+
+## ✅ Requisitos do projeto
+
+| Requisito | Como o AchaAí atende |
+|-----------|----------------------|
+| Componentização e Flexbox | Mais de 20 componentes reutilizáveis em `components/` (`Button`, `Input`, `ItemCard`, `FormularioItem`, `EstadoVazio`...), todos os layouts em Flexbox |
+| UI/UX com feedback visual | Spinners e esqueleto de carregamento, `Toast` e `Alerta` para erro/sucesso, estados vazios e de erro com ação ([guia](docs/feedbacks.md)) |
+| Navegação com múltiplos navegadores | Expo Router: **Stack** (login, cadastro, detalhes, editar) + **Bottom Tabs** (Feed, Publicar, Perfil), com redirecionamento conforme o login |
+| Estado local e eventos | `useState`, `useReducer`, `useEffect` com listeners em tempo real, eventos de toque, rolagem e teclado |
+| Estado global | Context API: `AuthContext` (usuário logado) e `ToastContext` (notificações em qualquer tela) |
+| Formulários com validação | Login, cadastro, publicar e editar, com mensagens por campo (`utils/validacao.ts`) |
+| Recursos nativos | Câmera e galeria, GPS, DateTimePicker, abrir WhatsApp/e-mail/mapa e compartilhar |
+| Ícones vetoriais | `@expo/vector-icons` (Ionicons) |
+| Firebase (NoSQL) | Firestore com **leitura** (tempo real), **gravação**, **edição** e **remoção**; regras de segurança em [`firestore.rules`](firestore.rules) |
+| Autenticação (diferencial) | Firebase Auth com e-mail e senha |
+| Git Flow | `main`, `develop` e `feature/*`, Pull Requests com revisão de outro integrante antes do merge |
 
 ## 🛠️ Tecnologias
 
 | Categoria | Tecnologia |
 |-----------|------------|
-| Framework | React Native + Expo |
+| Framework | React Native 0.88 + Expo SDK 58 + TypeScript |
 | Navegação | Expo Router (Native Stack + Bottom Tabs) |
 | Estado global | Context API |
 | Backend / Banco NoSQL | Firebase Firestore |
-| Autenticação | Firebase Auth |
-| Recursos nativos | expo-image-picker (câmera/galeria), expo-location (GPS) |
+| Autenticação | Firebase Auth (sessão salva com AsyncStorage) |
+| Recursos nativos | expo-image-picker e expo-image-manipulator (foto), expo-location (GPS), @react-native-community/datetimepicker (data) |
 | Ícones | @expo/vector-icons |
 
 ## 📂 Estrutura de pastas
 
 ```
 Acha-ai/
-├── app/                # Rotas (Expo Router)
-│   ├── (auth)/         # Login e cadastro (Stack)
-│   ├── (tabs)/         # Feed, Publicar e Perfil (Bottom Tabs)
-│   └── item/[id].tsx   # Detalhes do item
-├── components/         # Componentes reutilizáveis (Button, Input, ItemCard, Loading)
-├── contexts/           # Estado global (AuthContext)
-├── services/           # Configuração e funções do Firebase
-├── hooks/              # Hooks personalizados
-├── assets/             # Imagens e ícones
-└── docs/imagens-modelo/ # Protótipos das telas
+├── app/                   # Rotas (Expo Router)
+│   ├── (auth)/            # Login e cadastro (Stack)
+│   ├── (tabs)/            # Feed, Publicar e Perfil (Bottom Tabs)
+│   ├── item/[id].tsx      # Detalhes do item
+│   ├── editar/[id].tsx    # Editar publicação
+│   └── index.tsx          # Redireciona para o login ou para as abas
+├── components/            # Componentes reutilizáveis
+├── constants/             # Cores e categorias
+├── contexts/              # Estado global (AuthContext, ToastContext)
+├── hooks/                 # useAuth, useToast e hooks auxiliares
+├── services/              # Firebase, itens, foto, localização e contato
+├── types/                 # Tipos do modelo de dados (Item)
+├── utils/                 # Validação, formatação e filtros
+├── docs/                  # Imagens das telas e guia de feedbacks
+└── firestore.rules        # Regras de segurança do Firestore
 ```
 
 ## 🚀 Como executar localmente
@@ -68,7 +91,8 @@ Acha-ai/
 
 - [Node.js](https://nodejs.org/) 22.13 ou superior (exigido pelo Expo SDK 58)
 - [Git](https://git-scm.com/)
-- App **Expo Go** compatível com o **SDK 58** no celular (Android / iOS), ou um emulador Android/iOS
+- App **Expo Go compatível com o SDK 58** no celular (Android / iOS), ou um emulador Android/iOS
+  - Se a loja ainda não tiver a versão para o SDK 58, baixe em [expo.dev/go](https://expo.dev/go). Uma versão antiga mostra o erro *"Project is incompatible with this version of Expo Go"*.
 
 ### 1. Clonar o repositório
 
@@ -92,7 +116,6 @@ npm install
    - cada um publica apenas em seu próprio nome, e todo item nasce com o status "aberto";
    - só o autor edita ou remove o que publicou;
    - os campos precisam seguir os mesmos limites do formulário.
-
 4. Em **Configurações do projeto → Seus apps**, adicione um app **Web** e copie as credenciais.
 5. Na raiz do projeto, copie o arquivo de exemplo e preencha com suas chaves:
 
@@ -122,6 +145,8 @@ npx expo start -c
 - Escaneie o QR Code com o **Expo Go** (Android) ou com a câmera (iOS), ou
 - Pressione `a` para abrir no emulador Android / `i` para o simulador iOS.
 
+> 📶 Se o celular mostrar *"Failed to download remote update"*, o celular não está alcançando o computador (redes diferentes, Wi-Fi da faculdade ou firewall). Rode com túnel: `npx expo start -c --tunnel`.
+
 ## 🔀 Fluxo de trabalho (Git Flow)
 
 | Branch | Uso |
@@ -142,6 +167,6 @@ npx expo start -c
 
 | Integrante | GitHub | Responsabilidades (issues) |
 |------------|--------|----------------------------|
-| Cauã Mata | [@CauaMata14](https://github.com/CauaMata14) | #1 Setup do projeto · #2 Firebase · #3 Git Flow · #4 Login e cadastro · #5 AuthContext · #18 README |
-| Gustavo Domingos | [@Gustavo0320IESB](https://github.com/Gustavo0320IESB) | _a definir_ |
-| Marcus Vinicius | [@MarcusBrzerra](https://github.com/MarcusBrzerra) | _a definir_ |
+| Cauã Mata | [@CauaMata14](https://github.com/CauaMata14) | #1 Setup do projeto · #2 Firebase · #3 Git Flow · #4 Login e cadastro · #5 AuthContext · #6 Navegação · #11 Salvar item no Firestore · #12 Feed em tempo real · #14 Detalhes (foto ampliada e compartilhar) · #15 Contato · #17 Feedbacks visuais · #18 README |
+| Gustavo Domingos | [@Gustavo0320IESB](https://github.com/Gustavo0320IESB) | #7 Componentes reutilizáveis · #8 Formulário de publicar com validação · tela de detalhes do item · guia de feedbacks visuais |
+| Marcus Vinicius | [@MarcusBrzerra](https://github.com/MarcusBrzerra) | #9 Foto via câmera/galeria · #10 Localização · #13 Busca e filtros · #16 Perfil: minhas publicações (editar, remover, devolvido) |
