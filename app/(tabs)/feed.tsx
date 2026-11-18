@@ -1,6 +1,15 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alerta } from '@/components/Alerta';
@@ -41,6 +50,7 @@ export default function Feed() {
   const offline = useConfirmadoApos(semConexao);
   const [limite, setLimite] = useState(POR_PAGINA);
   const [carregandoMais, setCarregandoMais] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
 
   const itensFiltrados = useMemo(() => filtrarItens(itens, filtros), [itens, filtros]);
   const filtrando = temFiltroAtivo(filtros);
@@ -58,11 +68,13 @@ export default function Feed() {
         setSemConexao(doCache);
         setCarregandoItens(false);
         setCarregandoMais(false);
+        setAtualizando(false);
       },
       (falha) => {
         setErro(mensagemErroFirestore(falha));
         setCarregandoItens(false);
         setCarregandoMais(false);
+        setAtualizando(false);
       }
     );
     return cancelar;
@@ -73,6 +85,26 @@ export default function Feed() {
     setCarregandoMais(true);
     setLimite((atual) => Math.min(atual + POR_PAGINA, LIMITE_MAXIMO));
   }
+
+  /**
+   * Puxar para atualizar: volta para a primeira página e refaz a escuta no Firestore.
+   * O Feed já atualiza sozinho em tempo real; isso serve para quando a conexão estava instável.
+   */
+  function atualizar() {
+    setAtualizando(true);
+    setLimite(POR_PAGINA);
+    setTentativa((n) => n + 1);
+  }
+
+  const abrirItem = useCallback(
+    (id: string) => router.push({ pathname: '/item/[id]', params: { id } }),
+    []
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Item }) => <ItemCard item={item} onPress={() => abrirItem(item.id)} />,
+    [abrirItem]
+  );
 
   function tentarNovamente() {
     setCarregandoItens(true);
@@ -129,14 +161,22 @@ export default function Feed() {
       <FlatList
         data={itensFiltrados}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ItemCard
-            item={item}
-            onPress={() => router.push({ pathname: '/item/[id]', params: { id: item.id } })}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={[styles.lista, itensFiltrados.length === 0 && styles.listaVazia]}
-        ItemSeparatorComponent={() => <View style={styles.separador} />}
+        ItemSeparatorComponent={Separador}
+        // Renderiza só o que está perto da tela: a lista continua leve com muitos itens e fotos
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === 'android'}
+        refreshControl={
+          <RefreshControl
+            refreshing={atualizando}
+            onRefresh={atualizar}
+            colors={[cores.primaria]}
+            tintColor={cores.primaria}
+          />
+        }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         // Sem filtro, busca a próxima página automaticamente perto do fim da lista
@@ -209,6 +249,10 @@ export default function Feed() {
       <View style={styles.flex}>{renderConteudo()}</View>
     </SafeAreaView>
   );
+}
+
+function Separador() {
+  return <View style={styles.separador} />;
 }
 
 const styles = StyleSheet.create({
