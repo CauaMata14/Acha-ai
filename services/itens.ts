@@ -1,6 +1,7 @@
 import { FirebaseError } from 'firebase/app';
 import {
   collection,
+  deleteDoc,
   doc,
   DocumentData,
   DocumentSnapshot,
@@ -13,10 +14,12 @@ import {
   setDoc,
   Timestamp,
   Unsubscribe,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 
 import { db } from './firebase';
-import { AutorItem, Categoria, Item, LocalItem, TipoItem } from '@/types/item';
+import { AutorItem, Categoria, Item, LocalItem, StatusItem, TipoItem } from '@/types/item';
 
 export const COLECAO_ITENS = 'itens';
 
@@ -185,6 +188,78 @@ export async function publicarItem(
   });
   await comTempoLimite(gravacao, TEMPO_LIMITE_PUBLICAR_MS);
   return id;
+}
+
+/**
+ * Escuta em tempo real as publicações de um usuário (aba Perfil, #16), da mais nova para a mais antiga.
+ * A ordenação é feita aqui no app: ordenar no Firestore junto com o filtro por autor exigiria
+ * criar um índice composto no Console.
+ */
+export function ouvirMeusItens(
+  uid: string,
+  aoMudar: (itens: Item[], semConexao: boolean) => void,
+  aoErro: (erro: Error) => void
+): Unsubscribe {
+  const consulta = query(collection(db, COLECAO_ITENS), where('autor.uid', '==', uid));
+  return onSnapshot(
+    consulta,
+    OPCOES_ESCUTA,
+    (snap) => {
+      const itens = snap.docs
+        .map((d) => converterItem(d))
+        .sort((a, b) => b.criadoEm.getTime() - a.criadoEm.getTime());
+      aoMudar(itens, snap.metadata.fromCache);
+    },
+    aoErro
+  );
+}
+
+/**
+ * Salva a edição de uma publicação (#16). Não mexe em `criadoEm`, `status` nem no dono do item;
+ * do autor, só atualiza o WhatsApp de contato. As regras do Firestore só deixam o autor editar.
+ */
+export async function editarItem(id: string, dados: NovoItem, telefone: string | null): Promise<void> {
+  const gravacao = updateDoc(doc(db, COLECAO_ITENS, id), {
+    tipo: dados.tipo,
+    titulo: dados.titulo.trim(),
+    descricao: dados.descricao.trim(),
+    categoria: dados.categoria,
+    local: {
+      descricao: dados.local.descricao.trim(),
+      latitude: dados.local.latitude ?? null,
+      longitude: dados.local.longitude ?? null,
+    },
+    fotoUrl: dados.fotoUrl ?? null,
+    dataOcorrencia: Timestamp.fromDate(dados.dataOcorrencia),
+    'autor.telefone': telefone || null,
+  });
+  await comTempoLimite(gravacao, TEMPO_LIMITE_PUBLICAR_MS);
+}
+
+/** Marca a publicação como devolvida ou volta para "em aberto" (#16). */
+export async function alterarStatusItem(id: string, status: StatusItem): Promise<void> {
+  await comTempoLimite(updateDoc(doc(db, COLECAO_ITENS, id), { status }), TEMPO_LIMITE_PUBLICAR_MS);
+}
+
+/** Apaga a publicação (#16). As regras do Firestore só deixam o autor remover. */
+export async function removerItem(id: string): Promise<void> {
+  await comTempoLimite(deleteDoc(doc(db, COLECAO_ITENS, id)), TEMPO_LIMITE_PUBLICAR_MS);
+}
+
+/** Mensagem de erro ao editar, mudar a situação ou remover uma publicação. */
+export function mensagemErroAoAlterar(erro: unknown): string {
+  if (erro instanceof ErroTempoEsgotado) {
+    return 'O servidor não respondeu. Verifique sua internet e tente de novo.';
+  }
+  if (erro instanceof FirebaseError) {
+    if (erro.code === 'permission-denied') return 'Só quem publicou pode alterar este item.';
+    if (erro.code === 'not-found') return 'Esta publicação não existe mais.';
+    if (erro.code === 'invalid-argument' || erro.code === 'resource-exhausted') {
+      return 'A publicação ficou grande demais. Tente uma foto menor.';
+    }
+    if (MENSAGENS[erro.code]) return MENSAGENS[erro.code];
+  }
+  return 'Não foi possível salvar a alteração. Tente novamente.';
 }
 
 const MENSAGENS: Record<string, string> = {
