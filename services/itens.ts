@@ -1,6 +1,5 @@
 import { FirebaseError } from 'firebase/app';
 import {
-  addDoc,
   collection,
   doc,
   DocumentData,
@@ -11,6 +10,7 @@ import {
   query,
   QueryDocumentSnapshot,
   serverTimestamp,
+  setDoc,
   Timestamp,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -35,7 +35,8 @@ function paraData(valor: unknown): Date {
 export function converterItem(
   snap: DocumentSnapshot<DocumentData> | QueryDocumentSnapshot<DocumentData>
 ): Item {
-  const dados = snap.data() ?? {};
+  // 'estimate': enquanto o servidor não confirma a gravação, criadoEm vem com a hora local em vez de null
+  const dados = snap.data({ serverTimestamps: 'estimate' }) ?? {};
   const local = dados.local ?? {};
   const autor = dados.autor ?? {};
 
@@ -102,9 +103,50 @@ export type NovoItem = {
   fotoUrl?: string | null;
 };
 
-/** Grava uma nova publicação na coleção `itens` e devolve o id do documento criado. */
-export async function publicarItem(dados: NovoItem, autor: AutorItem): Promise<string> {
-  const referencia = await addDoc(collection(db, COLECAO_ITENS), {
+/** Tempo máximo esperando o servidor confirmar a publicação. */
+export const TEMPO_LIMITE_PUBLICAR_MS = 15_000;
+
+/** Erro lançado quando o servidor não confirma a gravação a tempo (ex.: celular sem internet). */
+export class ErroTempoEsgotado extends Error {
+  constructor() {
+    super('tempo-esgotado');
+    this.name = 'ErroTempoEsgotado';
+  }
+}
+
+/**
+ * Gera o id de uma nova publicação sem gravar nada.
+ * A tela guarda esse id e o reutiliza se o usuário tentar publicar de novo depois de um erro,
+ * assim a nova tentativa sobrescreve o mesmo documento em vez de criar um item duplicado.
+ */
+export function novoIdItem(): string {
+  return doc(collection(db, COLECAO_ITENS)).id;
+}
+
+/** Rejeita com ErroTempoEsgotado se a promessa não terminar em `ms` milissegundos. */
+function comTempoLimite<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rejeitar) => {
+    temporizador = setTimeout(() => rejeitar(new ErroTempoEsgotado()), ms);
+  });
+  return Promise.race([promessa, limite]).finally(() => clearTimeout(temporizador));
+}
+
+/**
+ * Grava uma publicação na coleção `itens` com o id informado (ver `novoIdItem`) e devolve esse id.
+ *
+ * Documento gravado: dados do formulário (com textos sem espaços nas pontas), foto (data URI ou null),
+ * local (texto + coordenadas opcionais), autor, `status: 'aberto'` e `criadoEm` com a hora do servidor.
+ *
+ * Sem internet, o Firestore guarda a gravação no aparelho e só a envia quando a conexão volta; por isso a
+ * espera é limitada a TEMPO_LIMITE_PUBLICAR_MS e, depois disso, lança ErroTempoEsgotado.
+ */
+export async function publicarItem(
+  id: string,
+  dados: NovoItem,
+  autor: AutorItem
+): Promise<string> {
+  const gravacao = setDoc(doc(db, COLECAO_ITENS, id), {
     tipo: dados.tipo,
     titulo: dados.titulo.trim(),
     descricao: dados.descricao.trim(),
@@ -124,7 +166,8 @@ export async function publicarItem(dados: NovoItem, autor: AutorItem): Promise<s
       email: autor.email ?? null,
     },
   });
-  return referencia.id;
+  await comTempoLimite(gravacao, TEMPO_LIMITE_PUBLICAR_MS);
+  return id;
 }
 
 const MENSAGENS: Record<string, string> = {
@@ -145,8 +188,15 @@ export function mensagemErroFirestore(erro: unknown): string {
 
 /** Mensagem de erro ao gravar (publicar, editar) em português. */
 export function mensagemErroAoSalvar(erro: unknown): string {
+  if (erro instanceof ErroTempoEsgotado) {
+    return 'O servidor não respondeu. Verifique sua internet e toque em Publicar de novo (o item não será duplicado).';
+  }
   if (erro instanceof FirebaseError) {
     if (erro.code === 'permission-denied') return 'Você não tem permissão para publicar. Faça login novamente.';
+    // Documento acima de 1 MB (na prática, uma foto grande demais)
+    if (erro.code === 'invalid-argument' || erro.code === 'resource-exhausted') {
+      return 'A publicação ficou grande demais. Tente uma foto menor.';
+    }
     if (MENSAGENS[erro.code]) return MENSAGENS[erro.code];
   }
   return 'Não foi possível publicar o item. Tente novamente.';
