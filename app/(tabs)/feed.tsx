@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Alerta } from '@/components/Alerta';
 import { BarraFiltros } from '@/components/BarraFiltros';
 import { EstadoErro } from '@/components/EstadoErro';
 import { EstadoVazio } from '@/components/EstadoVazio';
@@ -10,6 +11,7 @@ import { ItemCard } from '@/components/ItemCard';
 import { Loading } from '@/components/Loading';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
+import { useConfirmadoApos } from '@/hooks/useConfirmadoApos';
 import { mensagemErroFirestore, ouvirUltimosItens } from '@/services/itens';
 import { Item } from '@/types/item';
 import { filtrarItens, FILTROS_VAZIOS, FiltrosFeed, temFiltroAtivo } from '@/utils/filtros';
@@ -30,6 +32,8 @@ export default function Feed() {
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
   const [filtros, setFiltros] = useState<FiltrosFeed>(FILTROS_VAZIOS);
+  const [semConexao, setSemConexao] = useState(false);
+  const offline = useConfirmadoApos(semConexao);
 
   const itensFiltrados = useMemo(() => filtrarItens(itens, filtros), [itens, filtros]);
   const filtrando = temFiltroAtivo(filtros);
@@ -40,8 +44,9 @@ export default function Feed() {
     setErro(null);
     const cancelar = ouvirUltimosItens(
       LIMITE_FEED,
-      (novosItens) => {
+      (novosItens, doCache) => {
         setItens(novosItens);
+        setSemConexao(doCache);
         setCarregandoItens(false);
       },
       (falha) => {
@@ -53,8 +58,22 @@ export default function Feed() {
   }, [usuario, tentativa]);
 
   function renderConteudo() {
-    if (carregandoItens) return <Loading mensagem="Carregando publicações..." telaCheia={false} />;
+    // Lista vazia vinda só do cache: espera um pouco antes de concluir que não há publicações
+    const aguardandoServidor = itens.length === 0 && semConexao && !offline;
+    if (carregandoItens || aguardandoServidor) {
+      return <Loading mensagem="Carregando publicações..." telaCheia={false} />;
+    }
     if (erro) return <EstadoErro mensagem={erro} onTentarNovamente={() => setTentativa((n) => n + 1)} />;
+    if (itens.length === 0 && offline) {
+      return (
+        <EstadoVazio
+          icone="cloud-offline-outline"
+          titulo="Sem conexão com a internet"
+          mensagem="Assim que a conexão voltar, as publicações aparecem aqui automaticamente."
+          corIcone={cores.aviso}
+        />
+      );
+    }
     return (
       <FlatList
         data={itensFiltrados}
@@ -103,7 +122,12 @@ export default function Feed() {
             <EstadoVazio
               icone="file-tray-outline"
               titulo="Nenhum item publicado ainda"
-              mensagem="Quando alguém publicar um objeto achado ou perdido, ele aparece aqui."
+              mensagem="Achou ou perdeu alguma coisa no campus? Seja o primeiro a publicar."
+              acao={{
+                titulo: 'Publicar um item',
+                icone: 'add-circle-outline',
+                onPress: () => router.navigate('/publicar'),
+              }}
             />
           )
         }
@@ -119,6 +143,13 @@ export default function Feed() {
           Olá, {usuario?.displayName || usuario?.email}!
         </Text>
       </View>
+      {offline && itens.length > 0 && (
+        <Alerta
+          tipo="aviso"
+          mensagem="Sem internet. Mostrando as publicações salvas no aparelho."
+          style={styles.avisoOffline}
+        />
+      )}
       {!erro && <BarraFiltros filtros={filtros} onChange={setFiltros} />}
       <View style={styles.flex}>{renderConteudo()}</View>
     </SafeAreaView>
@@ -153,6 +184,11 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 14,
     color: cores.textoSuave,
+  },
+  avisoOffline: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 0,
   },
   lista: {
     padding: 16,
