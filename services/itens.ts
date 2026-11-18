@@ -63,26 +63,36 @@ export function converterItem(
   };
 }
 
+// includeMetadataChanges: avisa também quando os dados deixam de vir só do cache (a internet voltou)
+const OPCOES_ESCUTA = { includeMetadataChanges: true };
+
 /**
  * Escuta um item em tempo real (a tela atualiza sozinha se o item for editado ou marcado como devolvido).
  * Chama `aoMudar(null)` se o item não existir. Retorna a função para parar de escutar.
+ *
+ * `semConexao` é true quando o Firestore respondeu só com o que tem salvo no aparelho, sem confirmar com o
+ * servidor. Nesse caso `null` pode significar "não está no cache" e não "o item não existe".
  */
 export function ouvirItem(
   id: string,
-  aoMudar: (item: Item | null) => void,
+  aoMudar: (item: Item | null, semConexao: boolean) => void,
   aoErro: (erro: Error) => void
 ): Unsubscribe {
   return onSnapshot(
     doc(db, COLECAO_ITENS, id),
-    (snap) => aoMudar(snap.exists() ? converterItem(snap) : null),
+    OPCOES_ESCUTA,
+    (snap) => aoMudar(snap.exists() ? converterItem(snap) : null, snap.metadata.fromCache),
     aoErro
   );
 }
 
-/** Escuta as publicações mais recentes em tempo real. */
+/**
+ * Escuta as publicações mais recentes em tempo real.
+ * `semConexao` é true quando a lista veio só do cache do aparelho (pode estar desatualizada ou vazia).
+ */
 export function ouvirUltimosItens(
   quantidade: number,
-  aoMudar: (itens: Item[]) => void,
+  aoMudar: (itens: Item[], semConexao: boolean) => void,
   aoErro: (erro: Error) => void
 ): Unsubscribe {
   const consulta = query(
@@ -90,7 +100,12 @@ export function ouvirUltimosItens(
     orderBy('criadoEm', 'desc'),
     limit(quantidade)
   );
-  return onSnapshot(consulta, (snap) => aoMudar(snap.docs.map(converterItem)), aoErro);
+  return onSnapshot(
+    consulta,
+    OPCOES_ESCUTA,
+    (snap) => aoMudar(snap.docs.map((d) => converterItem(d)), snap.metadata.fromCache),
+    aoErro
+  );
 }
 
 export type NovoItem = {
