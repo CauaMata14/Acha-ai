@@ -28,13 +28,17 @@ No campus, objetos perdidos (carteiras, chaves, garrafas, fones, documentos) rar
 
 ## 🖼️ Telas
 
-| Login | Feed | Publicar item |
-|:-----:|:----:|:-------------:|
-| ![Login](docs/imagens-modelo/1-login.png) | ![Feed](docs/imagens-modelo/2-feed.png) | ![Publicar](docs/imagens-modelo/3-publicar.png) |
+Capturas do app rodando no Android (Expo Go).
 
-| Detalhes | Perfil | Estados (carregando, vazio, erro) |
-|:--------:|:------:|:---------------------------------:|
-| ![Detalhes](docs/imagens-modelo/4-detalhes.png) | ![Perfil](docs/imagens-modelo/5-perfil.png) | ![Estados](docs/imagens-modelo/6-estados.png) |
+| Login | Feed | Publicar item | Detalhes do item |
+|:-----:|:----:|:-------------:|:----------------:|
+| ![Login](docs/telas/1-login.png) | ![Feed](docs/telas/2-feed.png) | ![Publicar](docs/telas/3-publicar.png) | ![Detalhes](docs/telas/4-detalhes.png) |
+
+| Contato com quem publicou | Perfil (minhas publicações) | Editar publicação | Busca sem resultado |
+|:-------------------------:|:---------------------------:|:-----------------:|:-------------------:|
+| ![Contato](docs/telas/5-contato.png) | ![Perfil](docs/telas/6-perfil.png) | ![Editar](docs/telas/7-editar.png) | ![Busca sem resultado](docs/telas/8-busca-vazia.png) |
+
+> Os protótipos usados no planejamento das telas estão em [`docs/imagens-modelo/`](docs/imagens-modelo/).
 
 ## ✅ Requisitos do projeto
 
