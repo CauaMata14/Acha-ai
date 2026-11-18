@@ -8,7 +8,7 @@ import { BarraFiltros } from '@/components/BarraFiltros';
 import { EstadoErro } from '@/components/EstadoErro';
 import { EstadoVazio } from '@/components/EstadoVazio';
 import { ItemCard } from '@/components/ItemCard';
-import { Loading } from '@/components/Loading';
+import { ItemCardEsqueleto } from '@/components/ItemCardEsqueleto';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
 import { useConfirmadoApos } from '@/hooks/useConfirmadoApos';
@@ -61,7 +61,7 @@ export default function Feed() {
     // Lista vazia vinda só do cache: espera um pouco antes de concluir que não há publicações
     const aguardandoServidor = itens.length === 0 && semConexao && !offline;
     if (carregandoItens || aguardandoServidor) {
-      return <Loading mensagem="Carregando publicações..." telaCheia={false} />;
+      return <ItemCardEsqueleto />;
     }
     if (erro) return <EstadoErro mensagem={erro} onTentarNovamente={() => setTentativa((n) => n + 1)} />;
     if (itens.length === 0 && offline) {
