@@ -23,7 +23,8 @@
         {
           "locationWhenInUsePermission": "O AchaAí usa sua localização para registrar onde o item foi achado ou perdido."
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
