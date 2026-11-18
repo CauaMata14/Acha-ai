@@ -22,7 +22,7 @@ import { SeletorTipo } from '@/components/SeletorTipo';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import { mensagemErroAoSalvar, publicarItem } from '@/services/itens';
+import { mensagemErroAoSalvar, novoIdItem, publicarItem } from '@/services/itens';
 import { Categoria, TipoItem } from '@/types/item';
 import {
   DESCRICAO_MAXIMA,
@@ -49,6 +49,10 @@ export default function Publicar() {
   const [tentouEnviar, setTentouEnviar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+
+  // Id reservado para esta publicação. Se der erro (ex.: sem internet) e o usuário tentar de novo,
+  // a nova tentativa usa o mesmo id e sobrescreve o documento, sem criar um item duplicado.
+  const idPublicacao = useRef<string | null>(null);
 
   const scrollRef = useRef<ScrollViewInstance>(null);
   const descricaoRef = useRef<TextInputInstance>(null);
@@ -81,9 +85,11 @@ export default function Publicar() {
     setFoto(null);
     setTentouEnviar(false);
     setErroGeral(null);
+    idPublicacao.current = null;
   }
 
   async function handlePublicar() {
+    if (enviando) return;
     setTentouEnviar(true);
     setErroGeral(null);
 
@@ -93,8 +99,10 @@ export default function Publicar() {
     }
 
     setEnviando(true);
+    idPublicacao.current ??= novoIdItem();
     try {
       const id = await publicarItem(
+        idPublicacao.current,
         {
           tipo,
           titulo,
@@ -231,6 +239,10 @@ export default function Publicar() {
           <Text style={styles.asterisco}>*</Text> Campos obrigatórios
         </Text>
 
+        {enviando && (
+          <Alerta tipo="info" mensagem="Publicando seu item... aguarde um instante." style={styles.enviando} />
+        )}
+
         <View style={styles.acoes}>
           <Button
             titulo="Publicar"
@@ -274,6 +286,9 @@ const styles = StyleSheet.create({
   },
   asterisco: {
     color: cores.erro,
+  },
+  enviando: {
+    marginBottom: 12,
   },
   acoes: {
     gap: 12,
