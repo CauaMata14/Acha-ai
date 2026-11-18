@@ -5,7 +5,9 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -19,6 +21,7 @@ import { Card } from '@/components/Card';
 import { EstadoErro } from '@/components/EstadoErro';
 import { EstadoVazio } from '@/components/EstadoVazio';
 import { Loading } from '@/components/Loading';
+import { VisualizadorFoto } from '@/components/VisualizadorFoto';
 import { infoCategoria, NomeIcone, ROTULO_STATUS, ROTULO_TIPO } from '@/constants/categorias';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
@@ -117,6 +120,22 @@ export default function DetalhesItem() {
     }
   }
 
+  /** Compartilha um resumo do item (ex.: no grupo da turma) para ajudar a achar o dono. */
+  async function compartilhar() {
+    const linhas = [
+      `${achado ? '📦 Objeto ACHADO' : '🔎 Objeto PERDIDO'} no AchaAí: ${item!.titulo}`,
+      `Categoria: ${categoria.rotulo}`,
+      `Local: ${item!.local.descricao || 'não informado'}`,
+      `${achado ? 'Encontrado' : 'Perdido'} em ${formatarData(item!.dataOcorrencia)}`,
+      devolvido ? 'Situação: já devolvido ✅' : 'Abra o AchaAí para falar com quem publicou.',
+    ];
+    try {
+      await Share.share({ message: linhas.join('\n') });
+    } catch {
+      toast.erro('Não foi possível compartilhar agora.');
+    }
+  }
+
   function abrirMapa() {
     const { latitude, longitude } = item!.local;
     abrirUrl(
@@ -137,10 +156,29 @@ export default function DetalhesItem() {
 
   return (
     <View style={styles.tela}>
-      <Stack.Screen options={{ title: ROTULO_TIPO[item.tipo] }} />
+      <Stack.Screen
+        options={{
+          title: ROTULO_TIPO[item.tipo],
+          headerRight: () => (
+            <Pressable
+              onPress={compartilhar}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar publicação"
+            >
+              <Ionicons name="share-social-outline" size={24} color={cores.primaria} />
+            </Pressable>
+          ),
+        }}
+      />
 
       <ScrollView contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + 24 }]}>
-        <FotoItem key={item.fotoUrl ?? 'sem-foto'} url={item.fotoUrl} iconeReserva={categoria.icone} />
+        <FotoItem
+          key={item.fotoUrl ?? 'sem-foto'}
+          url={item.fotoUrl}
+          iconeReserva={categoria.icone}
+          titulo={item.titulo}
+        />
 
         <View style={styles.corpo}>
           <View style={styles.badges}>
@@ -262,10 +300,22 @@ export default function DetalhesItem() {
   );
 }
 
-/** Foto do item com indicador de carregamento e ícone de reserva caso falhe ou não exista. */
-function FotoItem({ url, iconeReserva }: { url?: string | null; iconeReserva: NomeIcone }) {
+/**
+ * Foto do item com indicador de carregamento e ícone de reserva caso falhe ou não exista.
+ * Tocar na foto abre a versão ampliada em tela cheia.
+ */
+function FotoItem({
+  url,
+  iconeReserva,
+  titulo,
+}: {
+  url?: string | null;
+  iconeReserva: NomeIcone;
+  titulo: string;
+}) {
   const [carregando, setCarregando] = useState(!!url);
   const [falhou, setFalhou] = useState(false);
+  const [ampliada, setAmpliada] = useState(false);
 
   if (!url || falhou) {
     return (
@@ -279,21 +329,40 @@ function FotoItem({ url, iconeReserva }: { url?: string | null; iconeReserva: No
   }
 
   return (
-    <View style={styles.foto}>
-      <Image
-        source={{ uri: url }}
-        style={styles.preencher}
-        resizeMode="cover"
-        onLoadEnd={() => setCarregando(false)}
-        onError={() => setFalhou(true)}
-        accessibilityLabel="Foto do item"
+    <>
+      <Pressable
+        style={styles.foto}
+        onPress={() => setAmpliada(true)}
+        disabled={carregando}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={`Foto do item ${titulo}`}
+        accessibilityHint="Toque para ampliar"
+      >
+        <Image
+          source={{ uri: url }}
+          style={styles.preencher}
+          resizeMode="cover"
+          onLoadEnd={() => setCarregando(false)}
+          onError={() => setFalhou(true)}
+        />
+        {carregando ? (
+          <View style={styles.fotoCarregando}>
+            <ActivityIndicator size="large" color={cores.primaria} />
+          </View>
+        ) : (
+          <View style={styles.seloAmpliar} pointerEvents="none">
+            <Ionicons name="expand-outline" size={14} color={cores.fundo} />
+            <Text style={styles.seloAmpliarTexto}>Toque para ampliar</Text>
+          </View>
+        )}
+      </Pressable>
+      <VisualizadorFoto
+        uri={url}
+        visivel={ampliada}
+        onFechar={() => setAmpliada(false)}
+        descricao={titulo}
       />
-      {carregando && (
-        <View style={styles.fotoCarregando}>
-          <ActivityIndicator size="large" color={cores.primaria} />
-        </View>
-      )}
-    </View>
+    </>
   );
 }
 
@@ -342,6 +411,23 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+  },
+  seloAmpliar: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  seloAmpliarTexto: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: cores.fundo,
   },
   fotoCarregando: {
     position: 'absolute',
