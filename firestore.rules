@@ -1,0 +1,60 @@
+rules_version = '2';
+
+// Regras do Firestore do AchaAí.
+// Publique no Console do Firebase: Firestore Database → Regras → cole este arquivo → Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /itens/{itemId} {
+      // Qualquer usuário logado vê as publicações
+      allow read: if logado();
+
+      // Publicar: o autor tem que ser quem está logado, o item nasce "aberto"
+      // e criadoEm é a hora do servidor
+      allow create: if logado()
+        && ehAutor(request.resource.data)
+        && itemValido(request.resource.data)
+        && request.resource.data.status == 'aberto'
+        && request.resource.data.criadoEm == request.time;
+
+      // Editar / marcar como devolvido (#16): só o autor, sem trocar o dono do item
+      allow update: if logado()
+        && ehAutor(resource.data)
+        && ehAutor(request.resource.data)
+        && itemValido(request.resource.data);
+
+      // Remover (#16): só o autor
+      allow delete: if logado() && ehAutor(resource.data);
+    }
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function ehAutor(item) {
+      return item.autor.uid == request.auth.uid;
+    }
+
+    // Mesmos limites de utils/validacao.ts
+    function itemValido(item) {
+      return item.keys().hasOnly([
+          'tipo', 'titulo', 'descricao', 'categoria', 'local', 'fotoUrl',
+          'dataOcorrencia', 'criadoEm', 'status', 'autor'
+        ])
+        && item.tipo in ['achado', 'perdido']
+        && item.titulo is string && item.titulo.size() >= 3 && item.titulo.size() <= 60
+        && item.descricao is string && item.descricao.size() >= 10 && item.descricao.size() <= 500
+        && item.categoria in [
+          'documentos', 'eletronicos', 'chaves', 'carteiras',
+          'garrafas', 'roupas', 'materiais', 'outros'
+        ]
+        && item.local.descricao is string && item.local.descricao.size() > 0
+        && item.local.descricao.size() <= 200
+        && (item.fotoUrl == null || item.fotoUrl is string)
+        && item.dataOcorrencia is timestamp
+        && item.criadoEm is timestamp
+        && item.status in ['aberto', 'devolvido']
+        && item.autor.nome is string;
+    }
+  }
+}

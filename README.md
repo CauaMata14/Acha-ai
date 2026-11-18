@@ -87,18 +87,11 @@ npm install
 
 1. Acesse o [Console do Firebase](https://console.firebase.google.com/) e crie um projeto de teste.
 2. Em **Build → Authentication**, ative o provedor **E-mail/senha**.
-3. Em **Build → Firestore Database**, crie o banco e, na aba **Regras**, publique as regras abaixo (só usuários logados leem e gravam):
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
+3. Em **Build → Firestore Database**, crie o banco. Na aba **Regras**, cole o conteúdo do arquivo [`firestore.rules`](firestore.rules) e clique em **Publicar**. Com essas regras:
+   - só usuários logados leem os itens;
+   - cada um publica apenas em seu próprio nome, e todo item nasce com o status "aberto";
+   - só o autor edita ou remove o que publicou;
+   - os campos precisam seguir os mesmos limites do formulário.
 
 4. Em **Configurações do projeto → Seus apps**, adicione um app **Web** e copie as credenciais.
 5. Na raiz do projeto, copie o arquivo de exemplo e preencha com suas chaves:
