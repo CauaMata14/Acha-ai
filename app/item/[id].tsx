@@ -22,6 +22,7 @@ import { Loading } from '@/components/Loading';
 import { infoCategoria, NomeIcone, ROTULO_STATUS, ROTULO_TIPO } from '@/constants/categorias';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
+import { useConfirmadoApos } from '@/hooks/useConfirmadoApos';
 import { useToast } from '@/hooks/useToast';
 import { mensagemErroFirestore, ouvirItem } from '@/services/itens';
 import { Item } from '@/types/item';
@@ -30,7 +31,7 @@ import { formatarData, formatarDataHora, formatarDataRelativa, iniciais } from '
 type Estado =
   | { fase: 'carregando' }
   | { fase: 'erro'; mensagem: string }
-  | { fase: 'pronto'; item: Item | null };
+  | { fase: 'pronto'; item: Item | null; semConexao: boolean };
 
 export default function DetalhesItem() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,20 +45,38 @@ export default function DetalhesItem() {
 
   useEffect(() => {
     if (!id) {
-      setEstado({ fase: 'pronto', item: null });
+      setEstado({ fase: 'pronto', item: null, semConexao: false });
       return;
     }
     setEstado({ fase: 'carregando' });
     const cancelar = ouvirItem(
       id,
-      (item) => setEstado({ fase: 'pronto', item }),
+      (item, semConexao) => setEstado({ fase: 'pronto', item, semConexao }),
       (erro) => setEstado({ fase: 'erro', mensagem: mensagemErroFirestore(erro) })
     );
     return cancelar;
   }, [id, tentativa]);
 
-  if (estado.fase === 'carregando') {
+  // Item ausente só no cache do aparelho: pode ser falta de internet, não "item removido"
+  const ausenteNoCache = estado.fase === 'pronto' && !estado.item && estado.semConexao;
+  const offline = useConfirmadoApos(ausenteNoCache);
+
+  if (estado.fase === 'carregando' || (ausenteNoCache && !offline)) {
     return <Loading mensagem="Carregando detalhes do item..." />;
+  }
+
+  if (ausenteNoCache) {
+    return (
+      <View style={styles.tela}>
+        <EstadoVazio
+          icone="cloud-offline-outline"
+          corIcone={cores.aviso}
+          titulo="Sem conexão com a internet"
+          mensagem="Não conseguimos carregar esta publicação agora. Ela aparece sozinha quando a conexão voltar."
+          acao={{ titulo: 'Voltar', icone: 'arrow-back', onPress: () => router.back() }}
+        />
+      </View>
+    );
   }
 
   if (estado.fase === 'erro') {

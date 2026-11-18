@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { EstadoVazio } from '@/components/EstadoVazio';
@@ -15,14 +16,25 @@ export default function Perfil() {
 
   const nome = usuario?.displayName || 'Usuário';
 
-  async function handleSair() {
+  const [saindo, setSaindo] = useState(false);
+
+  async function sairDaConta() {
+    setSaindo(true);
     try {
       await sair();
       toast.info('Você saiu da sua conta.');
       // O layout das abas percebe que não há mais usuário e redireciona para o login.
     } catch {
       toast.erro('Não foi possível sair. Tente novamente.');
+      setSaindo(false);
     }
+  }
+
+  function handleSair() {
+    Alert.alert('Sair da conta?', 'Você vai precisar entrar de novo para publicar ou ver os itens.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: sairDaConta },
+    ]);
   }
 
   return (
@@ -49,7 +61,13 @@ export default function Perfil() {
       />
 
       <View style={styles.acoes}>
-        <Button titulo="Sair" variante="secundario" icone="log-out-outline" onPress={handleSair} />
+        <Button
+          titulo="Sair"
+          variante="secundario"
+          icone="log-out-outline"
+          onPress={handleSair}
+          carregando={saindo}
+        />
       </View>
     </ScrollView>
   );
