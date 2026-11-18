@@ -14,6 +14,7 @@ import {
 import { Alerta } from '@/components/Alerta';
 import { Button } from '@/components/Button';
 import { CampoData } from '@/components/CampoData';
+import { CampoLocal, Coordenadas } from '@/components/CampoLocal';
 import { Input } from '@/components/Input';
 import { SeletorCategoria } from '@/components/SeletorCategoria';
 import { SeletorFoto } from '@/components/SeletorFoto';
@@ -32,7 +33,7 @@ import {
 } from '@/utils/validacao';
 
 // Aba "Publicar" (#8). Formulário de publicação de item.
-// Foto pela câmera/galeria (#9). Localização por GPS entra na #10.
+// Foto pela câmera/galeria (#9). Local por texto, ponto do campus ou GPS (#10).
 export default function Publicar() {
   const { usuario } = useAuth();
   const toast = useToast();
@@ -42,6 +43,7 @@ export default function Publicar() {
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [descricao, setDescricao] = useState('');
   const [local, setLocal] = useState('');
+  const [coordenadas, setCoordenadas] = useState<Coordenadas | null>(null);
   const [dataOcorrencia, setDataOcorrencia] = useState<Date | null>(() => new Date());
   const [foto, setFoto] = useState<string | null>(null);
   const [tentouEnviar, setTentouEnviar] = useState(false);
@@ -74,6 +76,7 @@ export default function Publicar() {
     setCategoria(null);
     setDescricao('');
     setLocal('');
+    setCoordenadas(null);
     setDataOcorrencia(new Date());
     setFoto(null);
     setTentouEnviar(false);
@@ -97,7 +100,11 @@ export default function Publicar() {
           titulo,
           categoria,
           descricao,
-          local: { descricao: local },
+          local: {
+            descricao: local,
+            latitude: coordenadas?.latitude ?? null,
+            longitude: coordenadas?.longitude ?? null,
+          },
           dataOcorrencia,
           fotoUrl: foto,
         },
@@ -195,18 +202,17 @@ export default function Publicar() {
           editable={!enviando}
         />
 
-        <Input
+        <CampoLocal
           ref={localRef}
           label="Onde foi?"
           obrigatorio
-          placeholder="Ex.: Biblioteca – 2º andar"
-          value={local}
-          onChangeText={setLocal}
+          valor={local}
+          onChangeValor={setLocal}
+          coordenadas={coordenadas}
+          onChangeCoordenadas={setCoordenadas}
           erro={erros.local}
           maxLength={LOCAL_MAXIMO}
-          autoCapitalize="sentences"
-          returnKeyType="done"
-          editable={!enviando}
+          desabilitado={enviando}
         />
 
         <CampoData

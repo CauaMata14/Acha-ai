@@ -17,6 +17,12 @@
           "cameraPermission": "O AchaAí precisa da câmera para você fotografar o item encontrado ou perdido.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O AchaAí usa sua localização para registrar onde o item foi achado ou perdido."
+        }
       ]
     ],
     "experiments": {
