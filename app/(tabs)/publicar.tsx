@@ -16,6 +16,7 @@ import { Button } from '@/components/Button';
 import { CampoData } from '@/components/CampoData';
 import { Input } from '@/components/Input';
 import { SeletorCategoria } from '@/components/SeletorCategoria';
+import { SeletorFoto } from '@/components/SeletorFoto';
 import { SeletorTipo } from '@/components/SeletorTipo';
 import { cores } from '@/constants/cores';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +32,7 @@ import {
 } from '@/utils/validacao';
 
 // Aba "Publicar" (#8). Formulário de publicação de item.
-// Foto (câmera/galeria) e localização por GPS entram nas próximas issues.
+// Foto pela câmera/galeria (#9). Localização por GPS entra na #10.
 export default function Publicar() {
   const { usuario } = useAuth();
   const toast = useToast();
@@ -42,6 +43,7 @@ export default function Publicar() {
   const [descricao, setDescricao] = useState('');
   const [local, setLocal] = useState('');
   const [dataOcorrencia, setDataOcorrencia] = useState<Date | null>(() => new Date());
+  const [foto, setFoto] = useState<string | null>(null);
   const [tentouEnviar, setTentouEnviar] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function Publicar() {
     setDescricao('');
     setLocal('');
     setDataOcorrencia(new Date());
+    setFoto(null);
     setTentouEnviar(false);
     setErroGeral(null);
   }
@@ -96,6 +99,7 @@ export default function Publicar() {
           descricao,
           local: { descricao: local },
           dataOcorrencia,
+          fotoUrl: foto,
         },
         {
           uid: usuario.uid,
@@ -143,6 +147,14 @@ export default function Publicar() {
         )}
 
         <SeletorTipo valor={tipo} onChange={setTipo} erro={erros.tipo} desabilitado={enviando} />
+
+        <SeletorFoto
+          label="Foto do item"
+          valor={foto}
+          onChange={setFoto}
+          dica="Fotografe o objeto ou escolha uma imagem da galeria."
+          desabilitado={enviando}
+        />
 
         <Input
           label="Título"
