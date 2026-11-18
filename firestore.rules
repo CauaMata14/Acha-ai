@@ -54,7 +54,10 @@ service cloud.firestore {
         && item.dataOcorrencia is timestamp
         && item.criadoEm is timestamp
         && item.status in ['aberto', 'devolvido']
-        && item.autor.nome is string;
+        && item.autor.nome is string
+        // WhatsApp de contato (#15): opcional; se existir, só dígitos com DDD (10 ou 11)
+        && (!('telefone' in item.autor) || item.autor.telefone == null
+            || (item.autor.telefone is string && item.autor.telefone.matches('^[1-9][0-9]{9,10}$')));
     }
   }
 }
