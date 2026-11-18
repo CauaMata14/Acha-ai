@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alerta } from '@/components/Alerta';
@@ -17,10 +17,15 @@ import { Item } from '@/types/item';
 import { filtrarItens, FILTROS_VAZIOS, FiltrosFeed, temFiltroAtivo } from '@/utils/filtros';
 
 /**
- * Quantas publicações recentes o Feed escuta. A busca e os filtros (#13) são aplicados no app
- * sobre essa lista: o Firestore não faz busca por texto e filtrar lá exigiria índices compostos.
+ * O Feed escuta as publicações mais recentes em páginas de POR_PAGINA e busca mais quando o usuário
+ * chega ao fim da lista. Como a foto fica dentro do documento (até ~150 KB cada), baixar tudo de uma
+ * vez deixaria a abertura do app lenta e gastaria dados.
+ *
+ * A busca e os filtros (#13) são aplicados no app sobre o que já foi carregado: o Firestore não faz
+ * busca por texto e filtrar lá exigiria índices compostos.
  */
-const LIMITE_FEED = 100;
+const POR_PAGINA = 20;
+const LIMITE_MAXIMO = 200;
 
 // Aba Feed: lista as últimas publicações em tempo real, com busca e filtros por tipo e categoria (#13).
 // O layout das abas já garante que existe um usuário logado.
@@ -34,28 +39,74 @@ export default function Feed() {
   const [filtros, setFiltros] = useState<FiltrosFeed>(FILTROS_VAZIOS);
   const [semConexao, setSemConexao] = useState(false);
   const offline = useConfirmadoApos(semConexao);
+  const [limite, setLimite] = useState(POR_PAGINA);
+  const [carregandoMais, setCarregandoMais] = useState(false);
 
   const itensFiltrados = useMemo(() => filtrarItens(itens, filtros), [itens, filtros]);
   const filtrando = temFiltroAtivo(filtros);
+  // Se veio a página cheia, provavelmente existem publicações mais antigas
+  const temMais = itens.length >= limite && limite < LIMITE_MAXIMO;
 
+  // Aumentar o limite refaz a escuta com mais itens; os que já estavam na tela continuam lá
   useEffect(() => {
     if (!usuario) return;
-    setCarregandoItens(true);
     setErro(null);
     const cancelar = ouvirUltimosItens(
-      LIMITE_FEED,
+      limite,
       (novosItens, doCache) => {
         setItens(novosItens);
         setSemConexao(doCache);
         setCarregandoItens(false);
+        setCarregandoMais(false);
       },
       (falha) => {
         setErro(mensagemErroFirestore(falha));
         setCarregandoItens(false);
+        setCarregandoMais(false);
       }
     );
     return cancelar;
-  }, [usuario, tentativa]);
+  }, [usuario, tentativa, limite]);
+
+  function carregarMais() {
+    if (!temMais || carregandoMais || offline || erro) return;
+    setCarregandoMais(true);
+    setLimite((atual) => Math.min(atual + POR_PAGINA, LIMITE_MAXIMO));
+  }
+
+  function tentarNovamente() {
+    setCarregandoItens(true);
+    setTentativa((n) => n + 1);
+  }
+
+  function renderRodape() {
+    if (carregandoMais) {
+      return (
+        <View style={styles.rodape} accessibilityLiveRegion="polite">
+          <ActivityIndicator color={cores.primaria} />
+          <Text style={styles.textoRodape}>Carregando publicações mais antigas...</Text>
+        </View>
+      );
+    }
+    if (itensFiltrados.length === 0) return null;
+    if (temMais) {
+      // Com filtro, a lista pode ficar curta: o usuário pode pedir para procurar mais para trás
+      return filtrando ? (
+        <Pressable onPress={carregarMais} style={styles.rodape} accessibilityRole="button" hitSlop={8}>
+          <Text style={styles.limpar}>Buscar em publicações mais antigas</Text>
+        </Pressable>
+      ) : null;
+    }
+    return (
+      <View style={styles.rodape}>
+        <Text style={styles.textoRodape}>
+          {limite >= LIMITE_MAXIMO
+            ? `Mostrando as ${LIMITE_MAXIMO} publicações mais recentes.`
+            : 'Você chegou ao fim das publicações. 🎉'}
+        </Text>
+      </View>
+    );
+  }
 
   function renderConteudo() {
     // Lista vazia vinda só do cache: espera um pouco antes de concluir que não há publicações
@@ -63,7 +114,7 @@ export default function Feed() {
     if (carregandoItens || aguardandoServidor) {
       return <ItemCardEsqueleto />;
     }
-    if (erro) return <EstadoErro mensagem={erro} onTentarNovamente={() => setTentativa((n) => n + 1)} />;
+    if (erro) return <EstadoErro mensagem={erro} onTentarNovamente={tentarNovamente} />;
     if (itens.length === 0 && offline) {
       return (
         <EstadoVazio
@@ -88,6 +139,10 @@ export default function Feed() {
         ItemSeparatorComponent={() => <View style={styles.separador} />}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        // Sem filtro, busca a próxima página automaticamente perto do fim da lista
+        onEndReached={filtrando ? undefined : carregarMais}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderRodape() ?? undefined}
         ListHeaderComponent={
           filtrando && itensFiltrados.length > 0 ? (
             <View style={styles.resumo}>
@@ -198,6 +253,17 @@ const styles = StyleSheet.create({
   },
   separador: {
     height: 12,
+  },
+  rodape: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  textoRodape: {
+    fontSize: 13,
+    color: cores.textoSuave,
   },
   resumo: {
     flexDirection: 'row',
